@@ -241,23 +241,6 @@ app.get('/customer', isAuthenticated, isCustomer, async (req, res) => {
             recentMessages = await MessageLog.find({ instanceName: user.instanceName })
                                              .sort({ timestamp: -1 })
                                              .limit(10);
-            try {
-                const statusRes = await axios.get(`${EVOLUTION_API_URL}/instance/connectionState/${user.instanceName}`, {
-                    headers: { 'apikey': EVOLUTION_API_KEY }
-                });
-                instanceState = statusRes.data?.instance?.state || 'UNKNOWN';
-
-                if (instanceState === 'connecting' || statusRes.data?.state === 'qr') {
-                    try {
-                        const qrRes = await axios.get(`${EVOLUTION_API_URL}/instance/connect/${user.instanceName}`, {
-                            headers: { 'apikey': EVOLUTION_API_KEY }
-                        });
-                        if (qrRes.data?.base64) qrCodeBase64 = qrRes.data.base64;
-                    } catch(qError) { console.error("QR Fetch err"); }
-                }
-            } catch(stErr) {
-                console.error("Check status Error");
-            }
         }
 
         res.render('customer', { user, recentMessages, qrCodeBase64, instanceState });
