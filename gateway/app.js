@@ -5,6 +5,7 @@ const axios = require('axios');
 const path = require('path');
 const session = require('express-session');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -41,7 +42,9 @@ const UserSchema = new mongoose.Schema({
     role: { type: String, enum: ['admin', 'customer'], default: 'customer' },
     credits: { type: Number, default: 100 },
     instanceName: String,
-    isActive: { type: Boolean, default: true }
+    isActive: { type: Boolean, default: true },
+    apiKey: { type: String, unique: true, sparse: true },
+    webhookUrl: { type: String, default: '' }
 });
 let User;
 try { User = mongoose.model('User'); } catch(e) { User = mongoose.model('User', UserSchema); }
@@ -123,6 +126,12 @@ app.post('/login', async (req, res) => {
             return res.render('login', { error: 'Invalid password' });
         }
         
+        // Ensure legacy customers get an API Key
+        if (!user.apiKey && user.role === 'customer') {
+            user.apiKey = 'sk_live_' + crypto.randomBytes(24).toString('hex');
+            await user.save();
+        }
+
         req.session.user = { id: user._id, username: user.username, role: user.role, instanceName: user.instanceName };
         if (user.role === 'admin') res.redirect('/admin');
         else res.redirect('/customer');
@@ -167,6 +176,7 @@ app.post('/admin/user/create', isAuthenticated, isAdmin, async (req, res) => {
         
         // Auto-generate instance name or base it on username
         const instanceName = `inst_${username.replace(/[^a-zA-Z0-9]/g, '')}_${Date.now()}`;
+        const apiKey = 'sk_live_' + crypto.randomBytes(24).toString('hex');
 
         await User.create({
             username,
@@ -174,7 +184,8 @@ app.post('/admin/user/create', isAuthenticated, isAdmin, async (req, res) => {
             role: 'customer',
             credits: parseInt(credits) || 0,
             instanceName,
-            isActive: true
+            isActive: true,
+            apiKey
         });
 
         // Request evolution API to generate the instance
@@ -255,6 +266,18 @@ app.get('/customer', isAuthenticated, isCustomer, async (req, res) => {
     }
 });
 
+// Update Webhook URL
+app.post('/customer/webhook', isAuthenticated, isCustomer, async (req, res) => {
+    try {
+        const user = await User.findById(req.session.user.id);
+        user.webhookUrl = req.body.webhookUrl || '';
+        await user.save();
+        res.redirect('/customer');
+    } catch (e) {
+        res.status(500).send("Save Webhook Error");
+    }
+});
+
 // 5. Send Message API (For testing by Customer)
 app.post('/api/sendmessage', isAuthenticated, isCustomer, async (req, res) => {
     try {
@@ -275,7 +298,48 @@ app.post('/api/sendmessage', isAuthenticated, isCustomer, async (req, res) => {
 
         res.json({ success: true, data: response.data });
     } catch (error) {
+        console.error("SendMessage Error:", error.response?.data || error.message);
         res.status(500).json({ success: false, error: 'Failed to send message' });
+    }
+});
+
+// 5.5. Stateless Public API (For Zapier / Make.com / APIs)
+async function isApiAuthorized(req, res, next) {
+    const apiKey = req.headers['x-api-key'];
+    if (!apiKey) return res.status(401).json({ success: false, error: 'Missing x-api-key header' });
+    
+    try {
+        const user = await User.findOne({ apiKey });
+        if (!user || user.role !== 'customer') return res.status(401).json({ success: false, error: 'Invalid API Key' });
+        if (!user.isActive) return res.status(403).json({ success: false, error: 'Account is inactive' });
+        req.apiUser = user;
+        next();
+    } catch(e) {
+        res.status(500).json({ success: false, error: 'Server error' });
+    }
+}
+
+app.post('/v1/messages/send', isApiAuthorized, async (req, res) => {
+    const user = req.apiUser;
+    if (user.credits <= 0) return res.status(403).json({ success: false, error: 'Insufficient credits' });
+
+    const { number, text } = req.body;
+    if (!number || !text) return res.status(400).json({ success: false, error: 'Missing "number" or "text"' });
+
+    try {
+        const response = await axios.post(`${EVOLUTION_API_URL}/message/sendText/${user.instanceName}`, {
+            number,
+            options: { delay: 1200, presence: "composing" },
+            text
+        }, { headers: { 'apikey': EVOLUTION_API_KEY } });
+
+        user.credits -= 1;
+        await user.save();
+
+        res.json({ success: true, message: 'Message queued successfully', creditsRemaining: user.credits });
+    } catch(error) {
+        console.error("API SendMessage Error:", error.response?.data || error.message);
+        res.status(500).json({ success: false, error: 'Failed to send message via Evolution API' });
     }
 });
 
@@ -296,6 +360,22 @@ app.post('/webhook/whatsapp', async (req, res) => {
                     status: 'received',
                     content: content
                 });
+
+                // Look up customer and forward payload if webhookUrl exists
+                try {
+                    const customer = await User.findOne({ instanceName: instance });
+                    if (customer && customer.webhookUrl) {
+                        await axios.post(customer.webhookUrl, {
+                            event: 'message.received',
+                            instance: instance,
+                            sender: data.key?.remoteJid,
+                            message: content,
+                            raw: data
+                        });
+                    }
+                } catch (fwErr) {
+                    console.error("Webhook forwarding failed:", fwErr.message);
+                }
             }
         }
         res.status(200).send('Webhook processed');
@@ -305,5 +385,5 @@ app.post('/webhook/whatsapp', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`🚀 SaaS Gateway running on http://localhost:${PORT}`);
+    console.log(`🚀 decisionmakers.in Gateway running on http://localhost:${PORT}`);
 });

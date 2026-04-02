@@ -1,7 +1,7 @@
 {
   "name": "whatsapp-saas-gateway",
   "version": "1.0.0",
-  "description": "WhatsApp SaaS Express Gateway connecting to Evolution API and MongoDB",
+  "description": "decisionmakers.in Gateway connecting to Evolution API and MongoDB",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",

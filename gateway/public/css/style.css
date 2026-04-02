@@ -47,6 +47,16 @@ a { text-decoration: none; color: inherit; }
     flex-direction: column;
 }
 
+.sidebar-logo {
+    padding: 25px 20px;
+    font-size: 18px;
+    font-weight: 700;
+    border-bottom: 1px solid var(--border-color);
+    letter-spacing: 0.5px;
+}
+.sidebar-logo a { color: var(--text-main); text-decoration: none; }
+.sidebar-logo a:hover { color: var(--cyan); }
+
 .sidebar-header {
     padding: 30px 20px;
     display: flex;

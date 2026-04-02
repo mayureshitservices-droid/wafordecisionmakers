@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customer Dashboard | WhatsApp SAAS</title>
+    <title>Customer Dashboard | decisionmakers.in</title>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" type="text/css">
     <link rel="stylesheet" href="/css/style.css">
 </head>
@@ -11,6 +11,9 @@
     <div class="layout-container">
         <!-- Sidebar -->
         <aside class="sidebar">
+            <div class="sidebar-logo">
+                <a href="/customer">DECISIONMAKERS.IN</a>
+            </div>
             <div class="sidebar-header">
                 <img src="https://i.pravatar.cc/150?img=12" alt="Customer">
                 <div class="info">
@@ -95,6 +98,26 @@
                             <button onclick="window.location.reload()" class="btn btn-primary">Refresh Status</button>
                         </div>
                     <% } %>
+                </div>
+
+                <!-- API Integrations -->
+                <div class="card" style="flex: 1; min-width: 300px;">
+                    <div class="header">
+                        <h2>API & Webhooks</h2>
+                    </div>
+                    <form action="/customer/webhook" method="POST" style="margin-top: 15px;">
+                        <label style="color:var(--text-muted); font-size:13px; display:block; margin-bottom:5px;">Your Secret API Key (<span style="color:var(--red);">Do not share</span>)</label>
+                        <div style="display:flex; background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; margin-bottom:20px; border:1px solid rgba(255,255,255,0.1);">
+                            <code id="displayApiKey" style="color:var(--cyan); font-family:monospace; word-break:break-all; flex:1; filter:blur(4px); cursor:pointer;" onclick="this.style.filter='none';"><%= user.apiKey || 'Log out and log back in to generate.' %></code>
+                        </div>
+
+                        <label style="color:var(--text-muted); font-size:13px; display:block; margin-bottom:5px;">Inbound Webhook URL</label>
+                        <p style="color:var(--text-muted); font-size:12px; margin-bottom:10px;">We will forward incoming WhatsApp messages to this URL via POST request.</p>
+                        <div style="display:flex; gap:10px;">
+                            <input type="url" name="webhookUrl" value="<%= user.webhookUrl || '' %>" placeholder="https://hook.us1.make.com/..." style="flex:1;" required>
+                            <button type="submit" class="btn btn-cyan">Save</button>
+                        </div>
+                    </form>
                 </div>
 
                 <!-- Webhooks & Testing -->
