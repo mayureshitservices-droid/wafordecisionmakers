@@ -50,17 +50,6 @@ services:
     networks:
       - evolution_network
 
-  redis:
-    container_name: evolution_redis
-    image: redis:7-alpine
-    restart: always
-    command: redis-server --appendonly yes
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    networks:
-      - evolution_network
 
 volumes:
   evolution_instances:
