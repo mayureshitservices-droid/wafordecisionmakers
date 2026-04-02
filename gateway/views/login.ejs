@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | WhatsApp API</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        body {
+            background: radial-gradient(circle at top left, #2b2b40 0%, var(--bg-main) 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .login-box { width: 380px; }
+        .logo { font-size: 26px; font-weight: 700; text-align: center; margin-bottom: 30px; letter-spacing: 1px;}
+        .card { padding: 40px; }
+        .input-group { position: relative; margin-bottom: 25px; }
+        .input-group i { position: absolute; left: 15px; top: 12px; color: var(--text-muted); }
+        .input-group input { width: 100%; padding: 12px 15px 12px 45px; background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 12px; }
+        .input-group input:focus { border-color: var(--primary); }
+        .btn-submit { width: 100%; padding: 14px; font-size: 15px; border-radius: 12px; }
+        .error-msg { background: rgba(255, 61, 0, 0.1); color: var(--red); padding: 12px; border-radius: 8px; font-size: 13px; text-align: center; margin-bottom: 20px;}
+    </style>
+</head>
+<body>
+    <div class="login-box">
+        <div class="logo">API GATEWAY</div>
+        <div class="card">
+            <form action="/login" method="POST">
+                <p style="text-align:center; color:var(--text-muted); margin-bottom:25px; font-size:14px;">Sign in to your dashboard</p>
+                <% if (error) { %>
+                    <div class="error-msg"><%= error %></div>
+                <% } %>
+                <div class="input-group">
+                    <i class="material-icons">person</i>
+                    <input type="text" name="username" placeholder="Username" required autofocus>
+                </div>
+                <div class="input-group">
+                    <i class="material-icons">lock</i>
+                    <input type="password" name="password" placeholder="Password" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-submit">SIGN IN</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

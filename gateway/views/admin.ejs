@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | WhatsApp SAAS</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="layout-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <img src="https://i.pravatar.cc/150?img=11" alt="Admin">
+                <div class="info">
+                    <span class="name">Admin Panel</span>
+                    <span class="role"><%= user.username %></span>
+                </div>
+            </div>
+            <div class="menu">
+                <ul class="list">
+                    <li class="active"><a href="/admin"><i class="material-icons">people</i><span>Customers</span></a></li>
+                    <li><a href="#"><i class="material-icons">insert_chart</i><span>Statistics</span></a></li>
+                    <li><a href="#"><i class="material-icons">settings</i><span>Settings</span></a></li>
+                </ul>
+                
+                <div class="premium-banner">
+                    <h3><i class="material-icons">diamond</i> Server Status</h3>
+                    <p>All nodes are running optimally. DB connected.</p>
+                    <button class="btn btn-cyan">View Metrics</button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="content">
+            <div class="top-bar">
+                <h1>Dashboard Overview</h1>
+                <div class="top-actions">
+                    <div style="background: var(--bg-card); padding: 8px 15px; border-radius: 20px; border: 1px solid var(--border-color); display:flex; align-items:center; gap:10px;">
+                        <i class="material-icons" style="color:var(--text-muted); font-size:18px;">search</i>
+                        <input type="text" placeholder="Search here" style="border:none; padding:0; background:transparent; width:200px;">
+                    </div>
+                    <a href="/logout" class="btn-logout"><i class="material-icons">logout</i> Logout</a>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="info-cards">
+                <div class="info-box">
+                    <div class="icon-wrapper icon-purple"><i class="material-icons">group</i></div>
+                    <div class="content-box">
+                        <div class="text">Total Customers</div>
+                        <div class="number"><%= stats.totalUsers %></div>
+                    </div>
+                </div>
+                <div class="info-box">
+                    <div class="icon-wrapper icon-cyan"><i class="material-icons">dns</i></div>
+                    <div class="content-box">
+                        <div class="text">Active Instances</div>
+                        <div class="number"><%= stats.activeInstances %></div>
+                    </div>
+                </div>
+                <div class="info-box">
+                    <div class="icon-wrapper icon-green"><i class="material-icons">forum</i></div>
+                    <div class="content-box">
+                        <div class="text">Messages Processed</div>
+                        <div class="number"><%= stats.totalMessages %></div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display:flex; gap:30px; flex-wrap: wrap;">
+                <div class="card" style="flex: 1; min-width: 300px;">
+                     <div class="header">
+                        <h2>Add New Customer</h2>
+                    </div>
+                    <form action="/admin/user/create" method="POST" style="display:flex; flex-direction:column; gap:15px;">
+                        <input type="text" name="username" placeholder="Username" required>
+                        <input type="password" name="password" placeholder="Password" required>
+                        <input type="number" name="credits" placeholder="Initial Credits" value="100">
+                        <button type="submit" class="btn btn-primary" style="margin-top:10px;">Create Account</button>
+                    </form>
+                </div>
+
+                <div class="card" style="flex: 2; min-width: 500px;">
+                    <div class="header">
+                        <h2>Customer List</h2>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Instance ID</th>
+                                    <th>Credits</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% if(customers && customers.length > 0) { %>
+                                    <% customers.forEach(c => { %>
+                                        <tr>
+                                            <td style="font-weight:600;"><%= c.username %></td>
+                                            <td style="color:var(--cyan);"><%= c.instanceName || 'None' %></td>
+                                            <td>
+                                                <form action="/admin/user/edit" method="POST" class="form-row">
+                                                    <input type="hidden" name="userId" value="<%= c._id %>">
+                                                    <input type="number" name="credits" value="<%= c.credits %>" style="width:80px; padding:8px;">
+                                                    <input type="checkbox" name="isActive" <%= c.isActive ? 'checked' : '' %>>
+                                                    <button type="submit" class="btn btn-primary" style="padding:8px 12px;">Save</button>
+                                                </form>
+                                            </td>
+                                            <td><span class="status <%= c.isActive ? 'active' : 'inactive' %>"><%= c.isActive ? 'Active' : 'Deactivated' %></span></td>
+                                            <td>
+                                                <form action="/admin/user/delete" method="POST">
+                                                    <input type="hidden" name="userId" value="<%= c._id %>">
+                                                    <button type="submit" class="btn btn-danger">Delete</button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    <% }) %>
+                                <% } else { %>
+                                    <tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:30px;">No customers found</td></tr>
+                                <% } %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+</body>
+</html>

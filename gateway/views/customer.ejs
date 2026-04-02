@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Dashboard | WhatsApp SAAS</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="layout-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <img src="https://i.pravatar.cc/150?img=12" alt="Customer">
+                <div class="info">
+                    <span class="name"><%= user.username %></span>
+                    <span class="role">Customer Plan</span>
+                </div>
+            </div>
+            <div class="menu">
+                <ul class="list">
+                    <li class="active"><a href="/customer"><i class="material-icons">dashboard</i><span>Overview</span></a></li>
+                    <li><a href="#"><i class="material-icons">import_contacts</i><span>Contacts</span></a></li>
+                    <li><a href="#"><i class="material-icons">campaign</i><span>Campaigns</span></a></li>
+                </ul>
+                
+                <div class="premium-banner">
+                    <h3><i class="material-icons">diamond</i> Upgrade Plan</h3>
+                    <p>Upgrade your API credits and remove send limits today.</p>
+                    <button class="btn btn-cyan">View Plans</button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="content">
+            <div class="top-bar">
+                <h1>Overview</h1>
+                <div class="top-actions">
+                    <a href="/logout" class="btn-logout"><i class="material-icons">logout</i> Logout</a>
+                </div>
+            </div>
+
+            <div class="info-cards">
+                <div class="info-box">
+                    <div class="icon-wrapper icon-yellow"><i class="material-icons">account_balance_wallet</i></div>
+                    <div class="content-box">
+                        <div class="text">API Credits</div>
+                        <div class="number"><%= user.credits %></div>
+                    </div>
+                </div>
+                <div class="info-box">
+                    <div class="icon-wrapper icon-purple"><i class="material-icons">sms</i></div>
+                    <div class="content-box">
+                        <div class="text">Instance Status</div>
+                        <% if(instanceState === 'open') { %>
+                            <span class="status active" style="margin-top:5px;">CONNECTED</span>
+                        <% } else { %>
+                            <span class="status inactive" style="margin-top:5px;"><%= instanceState.toUpperCase() %></span>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display:flex; gap:30px; flex-wrap: wrap;">
+                
+                <!-- QR Code Block -->
+                <div class="card" style="flex: 1; min-width: 300px; text-align:center;">
+                     <div class="header" style="justify-content:center;">
+                        <h2>Device Connection</h2>
+                    </div>
+                    
+                    <p style="color:var(--text-muted); font-size:13px; margin-bottom:20px;">
+                        Instance ID: <strong style="color:var(--cyan);"><%= user.instanceName || 'NOT ASSIGNED' %></strong>
+                    </p>
+
+                    <% if (qrCodeBase64) { %>
+                        <div class="qr-container">
+                            <img src="<%= qrCodeBase64 %>" alt="QR Code" width="220">
+                        </div>
+                        <p style="color:var(--text-muted); font-size:13px; margin:20px 0;">Scan this via WhatsApp Linked Devices.</p>
+                        <button onclick="window.location.reload()" class="btn btn-primary">Refresh Code</button>
+                    <% } else if (instanceState === 'open') { %>
+                        <div style="padding: 30px 0;">
+                            <i class="material-icons" style="font-size: 80px; color: var(--green); margin-bottom:20px;">task_alt</i>
+                            <h3 style="color: #fff;">WhatsApp is Linked</h3>
+                            <p style="color:var(--text-muted); font-size:13px; margin-top:10px;">Your API layer is fully operational.</p>
+                        </div>
+                    <% } else { %>
+                        <div style="padding: 30px 0;">
+                            <i class="material-icons" style="font-size: 50px; color: var(--red); margin-bottom:20px;">error_outline</i>
+                            <p style="color:var(--text-muted); font-size:13px;">Cannot generate QR. Ensure instance is active.</p>
+                            <br>
+                            <button onclick="window.location.reload()" class="btn btn-primary">Refresh Status</button>
+                        </div>
+                    <% } %>
+                </div>
+
+                <!-- Webhooks & Testing -->
+                <div class="card" style="flex: 2; min-width: 500px;">
+                    <div class="header">
+                        <h2>API Testing & Logs</h2>
+                    </div>
+                    
+                    <!-- Form -->
+                    <form id="sendMessageForm" class="form-row" style="background:var(--bg-card-hover); padding:20px; border-radius:15px; margin-bottom:30px;">
+                        <input type="text" id="waNumber" placeholder="Number (15551234)" style="width: 150px;" required>
+                        <input type="text" id="waText" placeholder="Message content..." style="flex:1;" required>
+                        <button type="submit" class="btn btn-primary" style="display:flex; align-items:center;"><i class="material-icons" style="font-size:16px; margin-right:5px;">send</i> Send</button>
+                    </form>
+                    <p id="sendResult" style="font-size:13px; margin-top:-20px; margin-bottom:20px;"></p>
+
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Recipient</th>
+                                    <th>Payload</th>
+                                    <th>Status</th>
+                                    <th>Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% if(recentMessages && recentMessages.length > 0) { %>
+                                    <% recentMessages.forEach(msg => { %>
+                                        <tr>
+                                            <td style="font-weight:600;"><%= msg.remoteJid || 'N/A' %></td>
+                                            <td style="color:var(--text-muted);"><%= (msg.content && msg.content.length > 40) ? msg.content.substring(0, 40) + '...' : msg.content %></td>
+                                            <td><span class="status completed"><%= msg.status %></span></td>
+                                            <td style="color:var(--text-muted); font-size:12px;"><%= new Date(msg.timestamp).toLocaleString() %></td>
+                                        </tr>
+                                    <% }) %>
+                                <% } else { %>
+                                    <tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:30px;">No message logs generated yet.</td></tr>
+                                <% } %>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        document.getElementById('sendMessageForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button');
+            const resText = document.getElementById('sendResult');
+            btn.disabled = true; btn.innerHTML = "Sending...";
+            try {
+                const res = await fetch('/api/sendmessage', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        number: document.getElementById('waNumber').value,
+                        text: document.getElementById('waText').value
+                    })
+                });
+                const data = await res.json();
+                if(data.success) { resText.innerText = "Message sent successfully!"; resText.style.color = "var(--green)"; }
+                else { resText.innerText = "Failed: " + data.error; resText.style.color = "var(--red)"; }
+            } catch(e) { resText.innerText = "Error sending API request."; resText.style.color = "var(--red)"; }
+            btn.disabled = false; btn.innerHTML = `<i class="material-icons" style="font-size:16px; margin-right:5px;">send</i> Send`;
+        });
+    </script>
+</body>
+</html>
