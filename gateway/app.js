@@ -11,9 +11,8 @@ const app = express();
 // Configuration
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGODB_URI;
-const EVOLUTION_API_URL = process.env.SERVER_URL || 'http://localhost:8080';
+const EVOLUTION_API_URL = process.env.SERVER_URL || 'http://evolution-api:8080';
 const EVOLUTION_API_KEY = process.env.AUTHENTICATION_API_KEY || 'my-super-secret-global-api-key-123';
-const WEBHOOK_GLOBAL_URL = process.env.WEBHOOK_GLOBAL_URL;
 
 // Models
 const userSchema = new mongoose.Schema({
@@ -48,7 +47,7 @@ app.use(session({
     secret: 'whatsapp-saas-secret-key-99',
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false } // Set to true if using HTTPS in production
+    cookie: { secure: false }
 }));
 
 // Auth Middlewares
@@ -99,23 +98,19 @@ app.post('/v1/messages/send', async (req, res) => {
     try {
         const user = await User.findOne({ apiKey, isActive: true });
         if (!user) return res.status(401).json({ success: false, error: 'Invalid or inactive API Key' });
-
         if (user.credits <= 0) return res.status(403).json({ success: false, error: 'Insufficient credits' });
 
         const { number, text } = req.body;
         if (!number || !text) return res.status(400).json({ success: false, error: 'Missing "number" or "text"' });
 
-        // Forward to Evolution API
         const response = await axios.post(`${EVOLUTION_API_URL}/message/sendText/${user.instanceName}`, {
             number,
             options: { delay: 1200, presence: "composing" },
             text
         }, { headers: { 'apikey': EVOLUTION_API_KEY } });
 
-        // Deduct credit
         user.credits -= 1;
         await user.save();
-
         res.json({ success: true, data: response.data });
     } catch (error) {
         console.error("Public API Send Error:", error.response?.data || error.message);
@@ -123,7 +118,7 @@ app.post('/v1/messages/send', async (req, res) => {
     }
 });
 
-// 3. Webhook Receiver - Forwarding to customers
+// 3. Webhook Receiver
 app.post('/webhook/whatsapp', async (req, res) => {
     const payload = req.body;
     const instanceName = payload.instance;
@@ -136,7 +131,6 @@ app.post('/webhook/whatsapp', async (req, res) => {
                 const messageContent = messageData.message?.conversation || messageData.message?.extendedTextMessage?.text || 'Media Message';
                 const remoteJid = messageData.key?.remoteJid;
 
-                // Log the message
                 await MessageLog.create({
                     instanceName,
                     remoteJid,
@@ -144,7 +138,6 @@ app.post('/webhook/whatsapp', async (req, res) => {
                     status: 'received'
                 });
 
-                // Forward to customer webhook if configured
                 if (user.webhookUrl) {
                     axios.post(user.webhookUrl, {
                         event: 'message.received',
@@ -194,7 +187,6 @@ app.post('/admin/user/create', isAuthenticated, isAdmin, async (req, res) => {
             apiKey
         });
 
-        // Request evolution API to generate the instance
         try {
             await axios.post(`${EVOLUTION_API_URL}/instance/create`, {
                 instanceName: instanceName,
@@ -207,7 +199,6 @@ app.post('/admin/user/create', isAuthenticated, isAdmin, async (req, res) => {
 
         res.redirect('/admin');
     } catch (e) {
-        console.error(e);
         res.status(500).send("Create User Error");
     }
 });
@@ -238,6 +229,15 @@ app.get('/customer', isAuthenticated, isCustomer, async (req, res) => {
                 });
                 instanceState = statusRes.data?.instance?.state || 'UNKNOWN';
 
+                // Handle qr state, connecting state, OR close state by requesting a new connection
+                if (instanceState === 'connecting' || statusRes.data?.state === 'qr' || instanceState === 'close' || instanceState === 'UNKNOWN') {
+                    try {
+                        const qrRes = await axios.get(`${EVOLUTION_API_URL}/instance/connect/${user.instanceName}`, {
+                            headers: { 'apikey': EVOLUTION_API_KEY }
+                        });
+                        if (qrRes.data?.base64) qrCodeBase64 = qrRes.data.base64;
+                    } catch(qError) { /* Silent fail */ }
+                }
             } catch(stErr) {
                 console.error(`Check status Error [${user.instanceName}]:`, stErr.response?.data || stErr.message);
                 if (stErr.response?.status === 404) {
@@ -294,7 +294,7 @@ mongoose.connect(MONGODB_URI)
     .then(() => {
         console.log('✅ Connected to MongoDB Atlas');
         app.listen(PORT, () => {
-            console.log(`🚀 decisionmakers.in Gateway running on http://localhost:${PORT}`);
+            console.log(`🚀 decisionmakers.in Gateway running on production server`);
         });
     })
     .catch(err => console.error('❌ MongoDB Connection Error:', err));
