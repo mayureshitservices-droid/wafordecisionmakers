@@ -11,7 +11,8 @@ const app = express();
 // Configuration
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGODB_URI;
-const EVOLUTION_API_URL = process.env.SERVER_URL || 'http://evolution-api:8080';
+// Use INTERNAL_API_URL to avoid conflict with public SERVER_URL
+const EVOLUTION_API_URL = process.env.INTERNAL_API_URL || 'http://evolution-api:8080';
 const EVOLUTION_API_KEY = process.env.AUTHENTICATION_API_KEY || 'my-super-secret-global-api-key-123';
 
 // Models
