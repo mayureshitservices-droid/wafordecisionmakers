@@ -50,6 +50,48 @@ services:
     networks:
       - evolution_network
 
+  redis:
+    container_name: evolution_redis
+    image: redis:7-alpine
+    restart: always
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - evolution_network
+
+  gateway:
+    container_name: whatsapp_gateway
+    build:
+      context: ./gateway
+    restart: always
+    environment:
+      - PORT=3000
+      - MONGODB_URI=${MONGODB_URI}
+      - SERVER_URL=http://evolution_api:8080
+      - AUTHENTICATION_API_KEY=${AUTHENTICATION_API_KEY}
+      - WEBHOOK_GLOBAL_URL=https://wa.decisionmakers.in/webhook/whatsapp
+    depends_on:
+      - evolution-api
+    networks:
+      - evolution_network
+
+  nginx:
+    container_name: whatsapp_nginx
+    image: nginx:alpine
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - gateway
+    networks:
+      - evolution_network
 
 volumes:
   evolution_instances:
