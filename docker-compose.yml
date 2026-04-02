@@ -68,7 +68,7 @@ services:
     environment:
       - PORT=3000
       - MONGODB_URI=${MONGODB_URI}
-      - SERVER_URL=http://evolution_api:8080
+      - SERVER_URL=http://evolution-api:8080
       - AUTHENTICATION_API_KEY=${AUTHENTICATION_API_KEY}
       - WEBHOOK_GLOBAL_URL=https://wa.decisionmakers.in/webhook/whatsapp
     depends_on:
