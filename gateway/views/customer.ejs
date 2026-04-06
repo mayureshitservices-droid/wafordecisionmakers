@@ -113,9 +113,9 @@
 
                         <label style="color:var(--text-muted); font-size:13px; display:block; margin-bottom:5px;">Inbound Webhook URL</label>
                         <p style="color:var(--text-muted); font-size:12px; margin-bottom:10px;">We will forward incoming WhatsApp messages to this URL via POST request.</p>
-                        <div style="display:flex; gap:10px;">
-                            <input type="url" name="webhookUrl" value="<%= user.webhookUrl || '' %>" placeholder="https://hook.us1.make.com/..." style="flex:1;" required>
-                            <button type="submit" class="btn btn-cyan">Save</button>
+                        <div style="display:flex; flex-direction:column; gap:15px;">
+                            <input type="url" name="webhookUrl" value="<%= user.webhookUrl || '' %>" placeholder="https://hook.us1.make.com/..." style="width:100%;" required>
+                            <button type="submit" class="btn btn-cyan" style="align-self: flex-start; padding: 10px 25px;">Save</button>
                         </div>
                     </form>
                 </div>
@@ -134,9 +134,9 @@
                     </form>
                     <p id="sendResult" style="font-size:13px; margin-top:-20px; margin-bottom:20px;"></p>
 
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead>
+                    <div class="table-responsive" style="max-height: 350px; overflow-y: auto;">
+                        <table class="table" style="position: relative;">
+                            <thead style="position: sticky; top: 0; background: var(--bg-card); z-index: 10; box-shadow: 0 1px 0 var(--border-color);">
                                 <tr>
                                     <th>Recipient</th>
                                     <th>Payload</th>

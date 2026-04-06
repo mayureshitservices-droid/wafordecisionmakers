@@ -4,7 +4,7 @@ const session = require('express-session');
 const axios = require('axios');
 const path = require('path');
 const bcrypt = require('bcryptjs');
-require('dotenv').config();
+require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
 
 const app = express();
 
@@ -194,13 +194,26 @@ app.post('/admin/user/create', isAuthenticated, isAdmin, async (req, res) => {
                 qrcode: true,
                 integration: "WHATSAPP-BAILEYS"
             }, { headers: { 'apikey': EVOLUTION_API_KEY } });
-        } catch(apiErr) {
+        } catch (apiErr) {
             console.error("Evolution API instance creation failed:", apiErr.response?.data || apiErr.message);
         }
 
         res.redirect('/admin');
     } catch (e) {
         res.status(500).send("Create User Error");
+    }
+});
+
+app.post('/admin/user/edit', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+        const { userId, credits, isActive } = req.body;
+        await User.findByIdAndUpdate(userId, {
+            credits: parseInt(credits) || 0,
+            isActive: isActive === 'on'
+        });
+        res.redirect('/admin');
+    } catch (e) {
+        res.status(500).send("Edit User Error");
     }
 });
 
@@ -222,8 +235,8 @@ app.get('/customer', isAuthenticated, isCustomer, async (req, res) => {
 
         if (user.instanceName) {
             recentMessages = await MessageLog.find({ instanceName: user.instanceName })
-                                             .sort({ timestamp: -1 })
-                                             .limit(10);
+                .sort({ timestamp: -1 })
+                .limit(10);
             try {
                 const statusRes = await axios.get(`${EVOLUTION_API_URL}/instance/connectionState/${user.instanceName}`, {
                     headers: { 'apikey': EVOLUTION_API_KEY }
@@ -237,9 +250,9 @@ app.get('/customer', isAuthenticated, isCustomer, async (req, res) => {
                             headers: { 'apikey': EVOLUTION_API_KEY }
                         });
                         if (qrRes.data?.base64) qrCodeBase64 = qrRes.data.base64;
-                    } catch(qError) { /* Silent fail */ }
+                    } catch (qError) { /* Silent fail */ }
                 }
-            } catch(stErr) {
+            } catch (stErr) {
                 console.error(`Check status Error [${user.instanceName}]:`, stErr.response?.data || stErr.message);
                 if (stErr.response?.status === 404) {
                     console.log(`Auto-creating missing instance: ${user.instanceName}`);
@@ -250,7 +263,7 @@ app.get('/customer', isAuthenticated, isCustomer, async (req, res) => {
                             integration: "WHATSAPP-BAILEYS"
                         }, { headers: { 'apikey': EVOLUTION_API_KEY } });
                         instanceState = "connecting";
-                    } catch(cErr) { console.error("Auto-creation failed:", cErr.message); }
+                    } catch (cErr) { console.error("Auto-creation failed:", cErr.message); }
                 }
             }
         }
